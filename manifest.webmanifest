@@ -1,6 +1,6 @@
 {
-  "name": "Par Timer: dry fire drills",
-  "short_name": "Par Timer",
+  "name": "Par Timer Next: dry fire drills",
+  "short_name": "Par Timer Next",
   "description": "Dry fire par timer with drill library, drill sets, history and stats. Works offline; your data stays on your device.",
   "id": "./",
   "start_url": "./",
