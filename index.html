@@ -1,0 +1,302 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#111418">
+  <title>Par Timer</title>
+  <meta name="description" content="Dry fire par timer with drill library, drill sets, history and stats. Works offline; your data stays on your device.">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" type="image/png" href="icons/favicon-64.png">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Par Timer">
+  <style>
+    :root {
+      --bg: #111418; --card: #1a1f25; --line: #2a313a; --text: #e8ecf1; --muted: #8a95a3;
+      --accent: #4ea1ff; --par: #1f9d55; --delay: #c0392b; --paused: #d4a017; --finished: #2f6fd6;
+      --stopped: #5b6470; --err: #ff6b6b; --input: #0f1216;
+    }
+    :root[data-theme="light"] {
+      --bg: #f2f4f7; --card: #ffffff; --line: #d9dee5; --text: #14181d; --muted: #5c6773;
+      --accent: #1f6fd6; --input: #f7f9fb;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; background: var(--bg); color: var(--text);
+      font: 16px/1.4 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+    body { padding: max(12px, env(safe-area-inset-top)) 16px 32px; max-width: 560px; margin: 0 auto; }
+    header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+    h1 { font-size: 20px; margin: 0; letter-spacing: .02em; }
+    .card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 14px; margin-bottom: 12px; }
+    button { font: inherit; color: var(--text); background: var(--input); border: 1px solid var(--line);
+      border-radius: 10px; padding: 10px 14px; cursor: pointer; }
+    button:disabled { opacity: .4; cursor: default; }
+    .icon-btn { padding: 6px 10px; }
+
+    /* timer */
+    #status { border-radius: 10px; padding: 8px 12px; font-weight: 600; text-align: center;
+      background: var(--stopped); color: #fff; transition: background .08s; }
+    #status.par { background: var(--par); } #status.delay { background: var(--delay); }
+    #status.paused { background: var(--paused); color: #111; } #status.finished { background: var(--finished); }
+    #big { font: 700 min(28vw, 132px)/1 ui-monospace, "SF Mono", "Roboto Mono", Consolas, monospace;
+      text-align: center; margin: 14px 0 6px; font-variant-numeric: tabular-nums; letter-spacing: -.03em; }
+    #big.dim { color: var(--muted); }
+    .meta { display: flex; justify-content: space-between; color: var(--muted); font-size: 14px;
+      font-variant-numeric: tabular-nums; }
+    .controls { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 8px; margin-top: 12px; }
+    #btnStart { background: var(--par); border-color: transparent; color: #fff; font-weight: 700; font-size: 18px; }
+    .controls button { min-height: 52px; }
+
+    /* form */
+    .seg { display: grid; grid-template-columns: 1fr 1fr; background: var(--input); border: 1px solid var(--line);
+      border-radius: 10px; padding: 3px; margin-bottom: 12px; }
+    .seg button { border: 0; background: transparent; padding: 8px; }
+    .seg button[aria-pressed="true"] { background: var(--card); box-shadow: 0 0 0 1px var(--line); font-weight: 600; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 12px; }
+    label { display: block; font-size: 13px; color: var(--muted); }
+    input[type=number] { width: 100%; margin-top: 4px; font: inherit; color: var(--text); background: var(--input);
+      border: 1px solid var(--line); border-radius: 8px; padding: 9px 10px; }
+    input:disabled { opacity: .5; }
+    .check { display: flex; align-items: center; gap: 8px; color: var(--text); font-size: 15px; padding-top: 22px; }
+    .check input { width: 20px; height: 20px; }
+    [hidden] { display: none !important; }
+    #errors { color: var(--err); font-size: 14px; margin: 10px 0 0; padding-left: 18px; }
+    #summary { color: var(--muted); font-size: 14px; margin-top: 10px; }
+    #stepList { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+    #stepList span { font-size: 12px; background: var(--input); border: 1px solid var(--line);
+      border-radius: 6px; padding: 2px 6px; font-variant-numeric: tabular-nums; }
+
+    details > summary { cursor: pointer; font-weight: 600; list-style: none; display: flex; justify-content: space-between; }
+    details > summary::after { content: "▸"; color: var(--muted); }
+    details[open] > summary::after { content: "▾"; }
+    details[open] > summary { margin-bottom: 10px; }
+    .tone { display: grid; grid-template-columns: 52px 1fr 112px; align-items: center; gap: 10px; margin: 8px 0; }
+    .tone span:last-child { text-align: right; font-variant-numeric: tabular-nums; color: var(--muted); font-size: 14px; }
+    input[type=range] { width: 100%; accent-color: var(--accent); }
+    .diag { font: 13px/1.5 ui-monospace, Consolas, monospace; color: var(--muted); white-space: pre-wrap; word-break: break-word; }
+    table { border-collapse: collapse; width: 100%; font: 12px ui-monospace, Consolas, monospace; margin-top: 8px; }
+    th, td { text-align: right; padding: 3px 6px; border-bottom: 1px solid var(--line); }
+    #planWrap { max-height: 260px; overflow: auto; }
+
+    /* drill header */
+    .drillbar { display: grid; grid-template-columns: 44px 1fr 44px; gap: 8px; align-items: stretch; }
+    .drillbar > button:not(#btnPick) { font-size: 22px; padding: 0; }
+    #btnPick { text-align: left; padding: 8px 12px; min-width: 0; }
+    #drillName { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+      font-weight: 700; font-size: 17px; line-height: 1.25; overflow-wrap: anywhere; }
+    #drillLabel { display: block; color: var(--accent); font: 600 15px ui-monospace, Consolas, monospace; margin-top: 2px; }
+    #setChip { display: inline-block; margin-top: 8px; font-size: 13px; background: var(--paused); color: #111;
+      border: 0; border-radius: 999px; padding: 3px 10px; }
+    #drillDesc { color: var(--muted); font-size: 14px; margin-top: 8px; white-space: pre-wrap; }
+    input[type=text], input[type=search], textarea, select { width: 100%; margin-top: 4px; font: inherit; color: var(--text);
+      background: var(--input); border: 1px solid var(--line); border-radius: 8px; padding: 9px 10px; }
+    textarea { resize: vertical; min-height: 60px; }
+    .full { grid-column: 1 / -1; }
+    .row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+    .row button { flex: 1; }
+    button.danger { color: var(--err); }
+    .hint { background: var(--input); border: 1px dashed var(--line); border-radius: 10px; padding: 10px 12px;
+      font-size: 14px; color: var(--muted); margin-top: 10px; }
+
+    /* picker */
+    dialog { background: var(--card); color: var(--text); border: 1px solid var(--line); border-radius: 14px;
+      padding: 0; width: min(560px, calc(100vw - 24px)); max-height: calc(100dvh - 32px); }
+    dialog::backdrop { background: rgb(0 0 0 / .55); }
+    .pick-head { position: sticky; top: 0; background: var(--card); padding: 12px; border-bottom: 1px solid var(--line);
+      display: grid; grid-template-columns: 1fr 1fr auto; gap: 8px; }
+    .pick-head input { grid-column: 1 / -1; margin: 0; }
+    .pick-head select { margin: 0; }
+    #packList { list-style: none; margin: 0; padding: 4px 0; overflow: auto; max-height: calc(100dvh - 300px); }
+    #packList label { display: grid; grid-template-columns: 24px 1fr auto; gap: 8px; align-items: center;
+      padding: 8px 14px; color: var(--text); font-size: 15px; }
+    #packList input { width: 18px; height: 18px; }
+    #packList .l { color: var(--accent); font: 12px ui-monospace, Consolas, monospace; }
+    #pickList { list-style: none; margin: 0; padding: 4px 0; overflow: auto; max-height: calc(100dvh - 160px); }
+    #pickList button { width: 100%; text-align: left; border: 0; border-radius: 0; background: transparent;
+      padding: 10px 14px; display: grid; grid-template-columns: 1fr auto; gap: 2px 10px; }
+    #pickList button[aria-current="true"] { background: var(--input); box-shadow: inset 3px 0 var(--accent); }
+    #pickList .n { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    #pickList .l { color: var(--accent); font: 13px ui-monospace, Consolas, monospace; text-align: right; }
+    #pickList .d { color: var(--muted); font-size: 12px; grid-column: 1 / -1; }
+
+    /* history */
+    .tbl td:first-child, .tbl th:first-child { text-align: left; }
+    h3 { font-size: 13px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 14px 0 0; }
+    .x { border: 0; background: transparent; color: var(--muted); padding: 0 4px; }
+    .about p { margin: 0 0 10px; font-size: 14px; line-height: 1.5; }
+    .about a { color: var(--accent); }
+    #verifyOut.ok { color: var(--par); } #verifyOut.bad { color: var(--err); }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Par Timer</h1>
+    <button id="btnTheme" class="icon-btn" aria-label="Toggle day/night">◐</button>
+  </header>
+
+  <div id="updateBar" class="card" hidden style="display:flex;align-items:center;justify-content:space-between;gap:10px">
+    <span>A new version is ready.</span><button id="btnUpdate">Reload to update</button>
+  </div>
+
+  <section class="card">
+    <div class="drillbar">
+      <button id="btnPrev" aria-label="Previous drill">‹</button>
+      <button id="btnPick" aria-haspopup="dialog"><span id="drillName">—</span><span id="drillLabel"></span></button>
+      <button id="btnNext" aria-label="Next drill">›</button>
+    </div>
+    <button id="setChip" hidden></button>
+    <div id="drillDesc"></div>
+    <div id="importHint" class="hint" hidden>
+      New here? <button id="btnStarter" style="padding:6px 10px;margin:6px 0">Load starter drills</button><br>
+      Coming from the old Dry Fire Par Timer? Use <b>Data → Import old app backup</b> to bring over your drills and history.
+    </div>
+  </section>
+
+  <section class="card" aria-live="polite">
+    <div id="status">Ready</div>
+    <div id="big" class="dim">0.00</div>
+    <div class="meta"><span id="repInfo">—</span><span id="remaining">--:--</span></div>
+    <div class="controls">
+      <button id="btnStart">Start</button>
+      <button id="btnPause" disabled>Pause</button>
+      <button id="btnStop" disabled>Stop</button>
+    </div>
+  </section>
+
+  <section class="card" id="drillCard">
+    <details id="editCard">
+    <summary>Edit drill</summary>
+    <div class="grid" style="margin-bottom:12px">
+      <label class="full">Name<input type="text" data-k="name" maxlength="80" autocomplete="off"></label>
+      <label class="full">Description<textarea data-k="description" rows="2"></textarea></label>
+    </div>
+    <div class="seg" role="group" aria-label="Drill format">
+      <button data-format="basic">Basic</button>
+      <button data-format="advanced">Advanced</button>
+    </div>
+    <div class="grid" data-for="basic">
+      <label>Par time (s)<input type="number" inputmode="decimal" step="0.05" min="0.4" data-k="par"></label>
+      <label>Rep delay (s)<input type="number" inputmode="decimal" step="0.1" min="0.5" data-k="delay"></label>
+      <label># of reps<input type="number" inputmode="numeric" step="1" min="1" data-k="reps"></label>
+    </div>
+    <div class="grid" data-for="advanced">
+      <label>Par start (s)<input type="number" inputmode="decimal" step="0.05" min="0.4" data-k="parStart"></label>
+      <label>Par final (s)<input type="number" inputmode="decimal" step="0.05" min="0.4" data-k="parFinal"></label>
+      <label>Reduce by (s)<input type="number" inputmode="decimal" step="0.05" min="0.15" data-k="parIncr"></label>
+      <label>Reps per step<input type="number" inputmode="numeric" step="1" min="1" data-k="repCount"></label>
+      <label>Delay first (s)<input type="number" inputmode="decimal" step="0.1" min="0.5" data-k="delayFirst"></label>
+      <label>Delay others (s)<input type="number" inputmode="decimal" step="0.1" min="0.5" data-k="delayOther"></label>
+      <label>Extra reps / step<input type="number" inputmode="numeric" step="1" min="0" data-k="repIncr"></label>
+      <div></div>
+      <label class="check"><input type="checkbox" data-k="randomize"> Randomize</label>
+      <label>± random (s)<input type="number" inputmode="decimal" step="0.05" min="0" data-k="randomMax"></label>
+    </div>
+    <ul id="errors" hidden></ul>
+    <div id="summary"></div>
+    <div id="stepList"></div>
+    <div class="row">
+      <button id="btnNew">New</button>
+      <button id="btnDup">Duplicate</button>
+      <button id="btnDel" class="danger">Delete</button>
+    </div>
+    </details>
+  </section>
+
+  <section class="card">
+    <details id="histCard">
+      <summary>History &amp; stats</summary>
+      <div id="histBody"></div>
+    </details>
+  </section>
+
+  <section class="card">
+    <details>
+      <summary>Beep tones</summary>
+      <div id="tones"></div>
+    </details>
+  </section>
+
+  <section class="card">
+    <details id="dataCard">
+      <summary>Data</summary>
+      <div class="diag" id="dataInfo"></div>
+      <div class="row">
+        <button id="btnImportDb">Import old app backup (.db)</button>
+      </div>
+      <div class="row">
+        <button id="btnPackImport">Import drill pack</button>
+        <button id="btnPackExport">Share drills as pack</button>
+      </div>
+      <div class="row">
+        <button id="btnExport">Export backup (.json)</button>
+        <button id="btnRestore">Restore backup (.json)</button>
+      </div>
+      <div class="diag" id="dataOut" style="margin-top:10px"></div>
+      <input type="file" id="fileDb" hidden>
+      <input type="file" id="fileJson" accept=".json,application/json" hidden>
+      <input type="file" id="filePack" accept=".json,application/json" hidden>
+    </details>
+  </section>
+
+  <section class="card">
+    <details id="diagCard">
+      <summary>Diagnostics</summary>
+      <div class="diag" id="diag"></div>
+      <p><button id="btnVerify">Verify timing (offline render)</button></p>
+      <div class="diag" id="verifyOut"></div>
+      <div id="planWrap"></div>
+    </details>
+  </section>
+
+  <section class="card">
+    <details id="aboutCard">
+      <summary>About &amp; credits</summary>
+      <div class="about">
+        <p><b>Dry fire only.</b> Unload your firearm, empty your magazines and keep all ammunition out of the room.</p>
+        <p>This app is an independent re-creation of
+          <a href="https://play.google.com/store/apps/details?id=com.csl1911a1.dryfirepartimer" target="_blank" rel="noopener">Dry Fire Par Time Tracker</a>
+          by CSL1911A1 (<a href="https://www.apps4shooting.com/" target="_blank" rel="noopener">apps4shooting.com</a>), whose
+          drill formats, drill sets and practice history it follows and whose backups it can import. It is not
+          affiliated with or endorsed by CSL1911A1.</p>
+        <p>Many of the starter drills and par-time goals are inspired by
+          <a href="https://www.goodreads.com/author/list/6648885.Ben_Stoeger" target="_blank" rel="noopener">Ben Stoeger's</a>
+          training books, especially <i>DryFire Reloaded</i> and <i>Dry-Fire Training: For the Practical Pistol Shooter</i>,
+          and <i>Practical Shooting Training</i> with Joel Park. The descriptions here are brief summaries written for this app.
+          For the full drills, progressions and the reasoning behind them, get the books. This app is not affiliated with or
+          endorsed by Ben Stoeger.</p>
+        <p class="diag">Your drills and history stay in this browser on this device. Nothing is sent anywhere.</p>
+      </div>
+    </details>
+  </section>
+
+  <dialog id="picker" aria-label="Choose a drill">
+    <div class="pick-head">
+      <input type="search" id="pickSearch" placeholder="Search drills" autocomplete="off">
+      <select id="pickSet" aria-label="Drill set"></select>
+      <select id="pickSort" aria-label="Sort">
+        <option value="name">Name</option><option value="recent">Recent</option><option value="used">Most used</option>
+      </select>
+      <button id="pickClose" aria-label="Close">✕</button>
+    </div>
+    <ul id="pickList"></ul>
+  </dialog>
+
+  <dialog id="packDlg" aria-label="Share drills as a pack">
+    <div class="pick-head" style="grid-template-columns:1fr auto">
+      <input type="text" id="packName" placeholder="Pack name" maxlength="60" style="grid-column:1">
+      <button id="packClose" aria-label="Close">✕</button>
+      <div class="row" style="grid-column:1 / -1;margin:0">
+        <button id="packAll">All</button><button id="packNone">None</button><button id="packSet">Current set</button>
+      </div>
+    </div>
+    <ul id="packList"></ul>
+    <div style="padding:12px;border-top:1px solid var(--line)">
+      <div class="diag" id="packCount" style="margin-bottom:8px"></div>
+      <button id="packGo" style="width:100%;background:var(--accent);color:#fff;border:0;font-weight:600">Save pack</button>
+      <div class="diag" style="margin-top:8px">Only drill names, descriptions and settings are included. No history.</div>
+    </div>
+  </dialog>
+
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
