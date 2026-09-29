@@ -11,6 +11,14 @@
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-title" content="Par Timer Next">
+  <script>
+    // Chrome fires this once it considers the app installable, possibly before the app's module
+    // loads, so catch it here and keep it for the Install button.
+    window.addEventListener('beforeinstallprompt', function (e) {
+      e.preventDefault();
+      window.__installPrompt = e;
+    });
+  </script>
   <style>
     :root {
       --bg: #111418; --card: #1a1f25; --line: #2a313a; --text: #e8ecf1; --muted: #8a95a3;
@@ -131,7 +139,10 @@
 <body>
   <header>
     <h1>Par Timer Next</h1>
-    <button id="btnTheme" class="icon-btn" aria-label="Toggle day/night">◐</button>
+    <div style="display:flex;gap:8px">
+      <button id="btnInstall" class="icon-btn" hidden>Install</button>
+      <button id="btnTheme" class="icon-btn" aria-label="Toggle day/night">◐</button>
+    </div>
   </header>
 
   <div id="updateBar" class="card" hidden style="display:flex;align-items:center;justify-content:space-between;gap:10px">
@@ -271,6 +282,30 @@
       </div>
     </details>
   </section>
+
+  <dialog id="installDlg" aria-label="Install Par Timer Next">
+    <div style="padding:16px" class="about">
+      <h2 style="font-size:18px;margin:0 0 10px">Install Par Timer Next</h2>
+      <div data-os="android">
+        <p>1. Make sure this page is open in the <b>Chrome app itself</b>. If you came from a link in another app
+          (Gmail, Messages, a chat app), tap <b>⋮ → Open in Chrome</b> first.</p>
+        <p>2. Tap <b>⋮</b> (top right) and choose <b>Install app</b>, or <b>Add to Home screen</b> and then <b>Install</b>.</p>
+        <p>3. Open it from the new <b>Par Timer Next</b> icon.</p>
+        <p class="diag">The down-arrow icon in Chrome's menu saves a copy of the page, not the app. If you only see "Create shortcut", that works too: it opens with the address bar showing.</p>
+      </div>
+      <div data-os="ios">
+        <p>1. Open this page in <b>Safari</b>.</p>
+        <p>2. Tap <b>Share</b> (the square with an arrow), then <b>Add to Home Screen</b>, then <b>Add</b>.</p>
+        <p>3. Open it from the new <b>Par Timer Next</b> icon.</p>
+      </div>
+      <div data-os="desktop">
+        <p>In Chrome or Edge, click the install icon at the right end of the address bar, or open the <b>⋮</b> menu
+          and choose <b>Install Par Timer Next</b> (in Chrome it can be under <b>Cast, save and share</b>).</p>
+      </div>
+      <p class="diag">Once installed it opens full-screen and works without a connection. Your drills stay on this device.</p>
+      <div class="row"><button id="installClose">OK</button></div>
+    </div>
+  </dialog>
 
   <dialog id="clearDlg" aria-label="Clear all history">
     <div style="padding:16px">

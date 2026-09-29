@@ -750,6 +750,29 @@ $('#btnVerify').onclick = async () => {
   }
 };
 
+// ---- install button ----
+// Chrome hands over an install prompt (captured in index.html) when the app is installable;
+// otherwise, and on iOS, the button shows the steps for this device instead.
+const standalone = () => matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+$('#btnInstall').hidden = standalone();
+$('#btnInstall').onclick = async () => {
+  const prompt = window.__installPrompt;
+  if (prompt) {
+    window.__installPrompt = null; // a prompt can only be used once
+    prompt.prompt();
+    const { outcome } = await prompt.userChoice;
+    if (outcome === 'accepted') $('#btnInstall').hidden = true;
+    return;
+  }
+  const ua = navigator.userAgent;
+  const os = /Android/i.test(ua) ? 'android'
+    : /iPhone|iPad|iPod/i.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1) ? 'ios' : 'desktop';
+  $$('#installDlg [data-os]').forEach((el) => { el.hidden = el.dataset.os !== os; });
+  $('#installDlg').showModal();
+};
+$('#installClose').onclick = () => $('#installDlg').close();
+window.addEventListener('appinstalled', () => { $('#btnInstall').hidden = true; window.__installPrompt = null; });
+
 // ---- offline / install (service worker) ----
 // Skipped on localhost so edits show up without cache games; add ?sw=1 to test it locally.
 const local = ['localhost', '127.0.0.1', '[::1]'].includes(location.hostname);
