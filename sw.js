@@ -2,7 +2,7 @@
 // VERSION and ASSETS are written by `npm run build:sw` (tools/build-sw.mjs); don't edit them by hand.
 // A new VERSION makes browsers install a fresh cache; the page then offers "Reload to update".
 
-const VERSION = '6b4ab94fcd5a';
+const VERSION = '2efe1cb838da';
 const ASSETS = ["./","index.html","manifest.webmanifest","js/app.js","js/audio.js","js/db.js","js/drill.js","js/legacy.js","js/packs.js","js/runner.js","js/stats.js","packs/starter.json","icons/apple-touch-icon.png","icons/favicon-64.png","icons/icon-192.png","icons/icon-512.png","icons/icon-maskable-512.png","vendor/sql-wasm.js","vendor/sql-wasm.wasm"];
 const CACHE = `par-timer-${VERSION}`;
 
