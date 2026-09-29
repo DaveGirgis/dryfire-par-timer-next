@@ -138,3 +138,22 @@ export function applyMerge(plan, when) {
     return [...idByName.values()];
   });
 }
+
+/** Delete every history row for one drill; the drill itself stays. Returns the number removed. */
+export function clearDrillHistory(drillId) {
+  return tx(['history'], 'readwrite', async (s) => {
+    const keys = await wrap(s.history.index('drillId').getAllKeys(drillId));
+    for (const k of keys) s.history.delete(k);
+    return keys.length;
+  });
+}
+
+/** Delete all history and practice-time rows; drills, sets and settings stay. */
+export function clearAllHistory() {
+  return tx(['history', 'sessions'], 'readwrite', async (s) => {
+    const removed = { history: await wrap(s.history.count()), sessions: await wrap(s.sessions.count()) };
+    s.history.clear();
+    s.sessions.clear();
+    return removed;
+  });
+}

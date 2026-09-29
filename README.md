@@ -17,6 +17,10 @@ browser via sql.js (vendored in `vendor/`, loaded only when importing). Drill id
 and the practice-time rows come across; float noise is rounded (0.699999988 → 0.70) and the
 "Exercise Description" placeholder is dropped. **Export / Restore backup** is this app's own JSON.
 
+**Clearing history:** *History & stats → Clear this drill's history* removes one drill's runs (the drill
+stays). *Data → Clear all history* removes every run and the practice-time log (drills, sets and settings
+stay); it requires typing CLEAR and downloads a backup first unless you untick that.
+
 ## Drill packs
 
 A drill pack (`*.drillpack.json`) holds drill names, descriptions and settings, plus optional sets,

@@ -231,6 +231,9 @@
         <button id="btnExport">Export backup (.json)</button>
         <button id="btnRestore">Restore backup (.json)</button>
       </div>
+      <div class="row">
+        <button id="btnClearAll" class="danger">Clear all history…</button>
+      </div>
       <div class="diag" id="dataOut" style="margin-top:10px"></div>
       <input type="file" id="fileDb" hidden>
       <input type="file" id="fileJson" accept=".json,application/json" hidden>
@@ -268,6 +271,20 @@
       </div>
     </details>
   </section>
+
+  <dialog id="clearDlg" aria-label="Clear all history">
+    <div style="padding:16px">
+      <h2 style="font-size:18px;margin:0 0 10px">Clear all history?</h2>
+      <p id="clearWhat" style="margin:0 0 10px;font-size:15px"></p>
+      <p style="margin:0 0 12px;font-size:14px;color:var(--muted)">Your drills, drill sets and settings stay. This cannot be undone.</p>
+      <label class="check" style="padding:0 0 12px"><input type="checkbox" id="clearBackup" checked> Download a backup first</label>
+      <label>Type CLEAR to confirm<input type="text" id="clearType" autocomplete="off" autocapitalize="characters" spellcheck="false"></label>
+      <div class="row">
+        <button id="clearCancel">Cancel</button>
+        <button id="clearGo" class="danger" disabled>Clear all history</button>
+      </div>
+    </div>
+  </dialog>
 
   <dialog id="picker" aria-label="Choose a drill">
     <div class="pick-head">

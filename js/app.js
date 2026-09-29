@@ -274,8 +274,51 @@ async function renderHistory() {
       ${rows.slice(0, 30).map((r) => `<tr><td>${esc(r.at.slice(0, 16))}</td><td>${f2(r.par)}</td><td>${r.reps}</td>` +
         `<td><button class="x" data-hid="${r.id}" aria-label="Delete run">✕</button></td></tr>`).join('')}
     </tbody></table>
-    ${rows.length > 30 ? `<div class="diag">${rows.length - 30} older runs not shown.</div>` : ''}`;
+    ${rows.length > 30 ? `<div class="diag">${rows.length - 30} older runs not shown.</div>` : ''}
+    <div class="row"><button id="btnClearDrill" class="danger">Clear this drill's history</button></div>`;
+  $('#btnClearDrill').onclick = () => clearDrillHistory(rows.length);
 }
+
+async function clearDrillHistory(n) {
+  if (busy()) return;
+  const name = nameOf(current);
+  if (!confirm(`Delete all ${n.toLocaleString()} run${n === 1 ? '' : 's'} recorded for "${name}"?\n\n` +
+    'The drill and its settings stay. This cannot be undone.')) return;
+  const removed = await db.clearDrillHistory(current.id);
+  usage.delete(current.id);
+  renderHistory();
+  renderHeader();
+  if ($('#dataCard').open) renderDataInfo();
+  $('#dataOut').textContent = `Cleared ${removed.toLocaleString()} runs for "${name}".`;
+}
+
+$('#btnClearAll').onclick = async () => {
+  if (busy()) return;
+  const c = await db.counts();
+  if (!c.history && !c.sessions) { $('#dataOut').textContent = 'There is no history to clear.'; return; }
+  $('#clearWhat').textContent = `This deletes ${c.history.toLocaleString()} recorded runs across all drills and ` +
+    `${c.sessions.toLocaleString()} practice-time entries.`;
+  $('#clearType').value = '';
+  $('#clearBackup').checked = true;
+  $('#clearGo').disabled = true;
+  $('#clearDlg').showModal();
+  $('#clearType').focus();
+};
+$('#clearType').oninput = () => { $('#clearGo').disabled = $('#clearType').value.trim().toUpperCase() !== 'CLEAR'; };
+$('#clearCancel').onclick = () => $('#clearDlg').close();
+$('#clearGo').onclick = async () => {
+  if ($('#clearType').value.trim().toUpperCase() !== 'CLEAR') return;
+  $('#clearDlg').close();
+  if ($('#clearBackup').checked) await exportBackup();
+  const removed = await db.clearAllHistory();
+  await rebuildUsage();
+  renderHeader();
+  if ($('#histCard').open) renderHistory();
+  renderDataInfo();
+  $('#dataOut').textContent = `Cleared ${removed.history.toLocaleString()} runs and ` +
+    `${removed.sessions.toLocaleString()} practice-time entries.` +
+    ($('#clearBackup').checked ? ' A backup of them was downloaded first.' : '');
+};
 $('#histCard').addEventListener('toggle', () => { if ($('#histCard').open) renderHistory(); });
 $('#histBody').onclick = async (e) => {
   const b = e.target.closest('[data-hid]');
@@ -334,10 +377,14 @@ $('#fileDb').onchange = async (e) => {
   }
 };
 
-$('#btnExport').onclick = async () => {
+async function exportBackup() {
   await flushSave();
   const data = await db.exportAll();
   download(JSON.stringify(data), `par-timer-backup-${stamp().replace(/[-: ]/g, '').slice(0, 12)}.json`);
+  return data;
+}
+$('#btnExport').onclick = async () => {
+  const data = await exportBackup();
   $('#dataOut').textContent = `Exported ${data.drills.length} drills and ${data.history.length.toLocaleString()} runs.`;
 };
 
