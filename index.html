@@ -17,6 +17,7 @@
     window.addEventListener('beforeinstallprompt', function (e) {
       e.preventDefault();
       window.__installPrompt = e;
+      window.dispatchEvent(new Event('pt-installable'));
     });
   </script>
   <style>
@@ -131,6 +132,7 @@
     .tbl td:first-child, .tbl th:first-child { text-align: left; }
     h3 { font-size: 13px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 14px 0 0; }
     .x { border: 0; background: transparent; color: var(--muted); padding: 0 4px; }
+    #btnInstall.ready { background: var(--accent); border-color: transparent; color: #fff; font-weight: 600; }
     .about p { margin: 0 0 10px; font-size: 14px; line-height: 1.5; }
     .about a { color: var(--accent); }
     #verifyOut.ok { color: var(--par); } #verifyOut.bad { color: var(--err); }
@@ -289,9 +291,10 @@
       <div data-os="android">
         <p>1. Make sure this page is open in the <b>Chrome app itself</b>. If you came from a link in another app
           (Gmail, Messages, a chat app), tap <b>⋮ → Open in Chrome</b> first.</p>
-        <p>2. Tap <b>⋮</b> (top right) and choose <b>Install app</b>, or <b>Add to Home screen</b> and then <b>Install</b>.</p>
+        <p>2. Tap <b>⋮</b> (top right), then <b>Install and create shortcut</b> (older Chrome: <b>Add to Home screen</b>), then <b>Install</b>.</p>
         <p>3. Open it from the new <b>Par Timer Next</b> icon.</p>
-        <p class="diag">The down-arrow icon in Chrome's menu saves a copy of the page, not the app. If you only see "Create shortcut", that works too: it opens with the address bar showing.</p>
+        <p class="diag">If Install is greyed out ("This app cannot be installed"), use the page for half a minute (tap a few things), then try again. If it stays greyed out, open Diagnostics at the bottom of the page and send a screenshot of it.</p>
+        <p class="diag">The down-arrow icon in Chrome's menu saves a copy of the page, not the app. "Create shortcut" works too, but opens with the address bar showing.</p>
       </div>
       <div data-os="ios">
         <p>1. Open this page in <b>Safari</b>.</p>

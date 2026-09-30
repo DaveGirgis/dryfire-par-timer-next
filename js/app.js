@@ -719,6 +719,13 @@ function paintDiag() {
     c ? `latency: base ${((c.baseLatency || 0) * 1000).toFixed(1)} ms, output ${((c.outputLatency || 0) * 1000).toFixed(1)} ms` : '',
     `wake lock: ${wakeState}`,
     `runner: ${runner.state}`,
+    `install: ${standalone() ? 'running as installed app'
+      : window.__installPrompt ? 'Chrome says installable (Install button ready)'
+      : 'no install prompt from Chrome yet'}`,
+    `display mode: ${standalone() ? 'standalone' : 'browser'}`,
+    `service worker: ${!('serviceWorker' in navigator) ? 'not supported'
+      : navigator.serviceWorker.controller ? 'active (works offline)' : 'not controlling this page'}`,
+    `browser: ${browserInfo}`,
   ].filter(Boolean).join('\n');
 }
 $('#diagCard').addEventListener('toggle', paintDiag);
@@ -754,7 +761,15 @@ $('#btnVerify').onclick = async () => {
 // Chrome hands over an install prompt (captured in index.html) when the app is installable;
 // otherwise, and on iOS, the button shows the steps for this device instead.
 const standalone = () => matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
-$('#btnInstall').hidden = standalone();
+let browserInfo = navigator.userAgent; // refined below when the browser shares more detail
+function refreshInstall() {
+  $('#btnInstall').hidden = standalone();
+  // Highlighted once Chrome has said the app is installable (it waits for some use of the page).
+  $('#btnInstall').classList.toggle('ready', !!window.__installPrompt);
+  paintDiag();
+}
+refreshInstall();
+window.addEventListener('pt-installable', refreshInstall);
 $('#btnInstall').onclick = async () => {
   const prompt = window.__installPrompt;
   if (prompt) {
@@ -762,6 +777,7 @@ $('#btnInstall').onclick = async () => {
     prompt.prompt();
     const { outcome } = await prompt.userChoice;
     if (outcome === 'accepted') $('#btnInstall').hidden = true;
+    refreshInstall();
     return;
   }
   const ua = navigator.userAgent;
@@ -771,7 +787,16 @@ $('#btnInstall').onclick = async () => {
   $('#installDlg').showModal();
 };
 $('#installClose').onclick = () => $('#installDlg').close();
-window.addEventListener('appinstalled', () => { $('#btnInstall').hidden = true; window.__installPrompt = null; });
+window.addEventListener('appinstalled', () => { $('#btnInstall').hidden = true; window.__installPrompt = null; paintDiag(); });
+
+// Browser details for Diagnostics: the full Chrome/Android versions and model when the browser shares them.
+if (navigator.userAgentData && navigator.userAgentData.getHighEntropyValues) {
+  navigator.userAgentData.getHighEntropyValues(['fullVersionList', 'platformVersion', 'model']).then((v) => {
+    const b = (v.fullVersionList || []).filter((x) => !/Not.?A.?Brand/i.test(x.brand)).map((x) => `${x.brand} ${x.version}`).join(', ');
+    browserInfo = `${b} · ${v.platform || ''} ${v.platformVersion || ''}${v.model ? ` · ${v.model}` : ''}`;
+    paintDiag();
+  }).catch(() => {});
+}
 
 // ---- offline / install (service worker) ----
 // Skipped on localhost so edits show up without cache games; add ?sw=1 to test it locally.
