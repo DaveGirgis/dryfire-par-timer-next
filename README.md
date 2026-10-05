@@ -126,3 +126,16 @@ The site is the repository root, served as static files: no build step beyond th
 3. Installed copies pick up the new version the next time they open, and show **Reload to update**.
 
 The service worker is skipped on `localhost` so edits show up immediately; add `?sw=1` to test it.
+
+## Also served from the VPS
+
+https://partimernext.x98c.info/ is the same app, served by Caddy on the x98c.info VPS from a git clone
+in `/var/www/html/partimernext.x98c.info` (owned by `charlie`; Caddy hides `.git`, `tests/`, `tools/` and
+the package files, and gets/renews the Let's Encrypt certificate itself). After pushing to `main`, update it with:
+
+```
+ssh charlie@x98c.info 'git -C /var/www/html/partimernext.x98c.info pull --ff-only'
+```
+
+No Caddy reload is needed for app updates. Data is per address: drills saved at the GitHub Pages URL don't
+appear at partimernext.x98c.info, so move them with Export / Restore backup.
