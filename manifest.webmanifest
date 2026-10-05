@@ -2,7 +2,6 @@
   "name": "Par Timer Next: dry fire drills",
   "short_name": "Par Timer Next",
   "description": "Dry fire par timer with drill library, drill sets, history and stats. Works offline; your data stays on your device.",
-  "id": "/dryfire-par-timer-next/",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

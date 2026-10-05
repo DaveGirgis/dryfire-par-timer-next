@@ -18,10 +18,12 @@ test('every precached asset exists, and the manifest icons are among them', () =
   assert.ok(m.icons.some((i) => i.sizes === '512x512' && i.purpose === 'maskable'));
 });
 
-test('manifest id is the app path, not the site root', () => {
-  // `id` resolves against the origin, not the manifest: "./" would make the id https://<user>.github.io/,
-  // shared by every Pages site on the account. Chrome recommends the app's own path.
+test('manifest has no hard-coded id, so the app works at any address', () => {
+  // Without "id" the app's identity is its start_url resolved against the manifest:
+  // https://davegirgis.github.io/dryfire-par-timer-next/ on Pages (the same id as before) and
+  // https://partimernext.x98c.info/ on the VPS. "./" as an id would collapse to the bare origin.
   const m = JSON.parse(readFileSync(new URL('manifest.webmanifest', root), 'utf8'));
-  assert.equal(m.id, '/dryfire-par-timer-next/');
+  assert.equal(m.id, undefined);
   assert.equal(m.start_url, './');
+  assert.equal(m.scope, './');
 });
