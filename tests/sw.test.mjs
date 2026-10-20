@@ -20,8 +20,8 @@ test('every precached asset exists, and the manifest icons are among them', () =
 
 test('manifest has no hard-coded id, so the app works at any address', () => {
   // Without "id" the app's identity is its start_url resolved against the manifest:
-  // https://davegirgis.github.io/dryfire-par-timer-next/ on Pages (the same id as before) and
-  // https://partimernext.x98c.info/ on the VPS. "./" as an id would collapse to the bare origin.
+  // each deployment (GitHub Pages or a self-hosted copy) gets the id of its own folder.
+  // "./" as an id would collapse to the bare origin.
   const m = JSON.parse(readFileSync(new URL('manifest.webmanifest', root), 'utf8'));
   assert.equal(m.id, undefined);
   assert.equal(m.start_url, './');
