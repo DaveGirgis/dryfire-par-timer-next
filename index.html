@@ -12,6 +12,15 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-title" content="Par Timer Next">
   <script>
+    // Keep the GitHub Pages copy out of search results; self-hosted copies stay indexable.
+    if (/\.github\.io$/.test(location.hostname)) {
+      var robots = document.createElement('meta');
+      robots.name = 'robots';
+      robots.content = 'noindex, nofollow';
+      document.head.appendChild(robots);
+    }
+  </script>
+  <script>
     // Chrome fires this once it considers the app installable, possibly before the app's module
     // loads, so catch it here and keep it for the Install button.
     window.addEventListener('beforeinstallprompt', function (e) {
